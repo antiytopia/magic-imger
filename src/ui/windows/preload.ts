@@ -6,7 +6,8 @@ import {
   JobConfigPatch,
   PreflightEstimate,
   ScreenshotBatchResult,
-  ScreenshotBrowserMode
+  ScreenshotBrowserMode,
+  ScreenshotViewportOverride
 } from "../../shared/types.js";
 
 export interface RendererPlanBatchPayload {
@@ -34,6 +35,7 @@ export interface RendererScreenshotBatchPayload {
   copiesPerScreen?: number;
   mobile?: boolean;
   deviceProfileName?: string | null;
+  viewport?: ScreenshotViewportOverride;
   browserMode: ScreenshotBrowserMode;
   executablePath?: string;
   cdpEndpoint?: string | null;
@@ -43,6 +45,12 @@ export interface RendererScreenshotBatchPayload {
   waitAfterNavigationMs?: number;
   betweenSegmentWaitMs?: number;
   maxImageBytes?: number;
+}
+
+export interface RendererDeviceProfileSummary {
+  name: string;
+  viewport: { width: number; height: number } | null;
+  isMobile: boolean | null;
 }
 
 export interface MagicImgerBridge {
@@ -58,6 +66,7 @@ export interface MagicImgerBridge {
   runScreenshotBatch: (payload: RendererScreenshotBatchPayload) => Promise<ScreenshotBatchResult>;
   openPath: (targetPath: string) => Promise<void>;
   showItemInFolder: (targetPath: string) => Promise<void>;
+  listScreenshotDeviceProfiles: () => Promise<RendererDeviceProfileSummary[]>;
 }
 
 const api: MagicImgerBridge = {
@@ -69,7 +78,8 @@ const api: MagicImgerBridge = {
   runBatch: (payload) => ipcRenderer.invoke("batch:run", payload),
   runScreenshotBatch: (payload) => ipcRenderer.invoke("screenshots:run", payload),
   openPath: (targetPath) => ipcRenderer.invoke("shell:open-path", targetPath),
-  showItemInFolder: (targetPath) => ipcRenderer.invoke("shell:show-item-in-folder", targetPath)
+  showItemInFolder: (targetPath) => ipcRenderer.invoke("shell:show-item-in-folder", targetPath),
+  listScreenshotDeviceProfiles: () => ipcRenderer.invoke("screenshots:device-profiles")
 };
 
 contextBridge.exposeInMainWorld("magicImger", api);

@@ -1,9 +1,10 @@
 ﻿# Architecture Notes
 
-Принцип
+## Цель
 
- один общий движок обработки изображений и несколько интерфейсов поверх него, не дублируя бизнес-логику.
-После обновления ТЗ это означает:
+Сделать один общий движок обработки изображений и несколько интерфейсов поверх него, не дублируя бизнес-логику.
+
+Это означает:
 
 - Linux и macOS используют CLI;
 - Windows получает полноценный GUI;
@@ -40,8 +41,21 @@ src/
     windows/
       app/
         App.tsx
+        components/
+          ImagesPanel.tsx
+          ScreenshotsPanel.tsx
+        hooks/
+          use_screenshot_device_profiles.ts
+        lib/
+          bridge.ts
+          compression.ts
+          errors.ts
+          format.ts
+          fs-links.ts
+          normalize.ts
         store/
           queue-store.ts
+          queue-store-singleton.ts
       main.ts
       preload.ts
       clipboard.ts

@@ -75,6 +75,11 @@ export interface ScreenshotBrowserOptions {
   proxy?: string | null;
 }
 
+export interface ScreenshotViewportOverride {
+  width: number;
+  height: number;
+}
+
 export interface ScreenshotJobOptions extends ScreenshotBrowserOptions {
   url: string;
   outDir: string;
@@ -82,6 +87,7 @@ export interface ScreenshotJobOptions extends ScreenshotBrowserOptions {
   copiesPerScreen?: number;
   mobile?: boolean;
   deviceProfileName?: string | null;
+  viewport?: ScreenshotViewportOverride;
   waitAfterNavigationMs?: number;
   betweenSegmentWaitMs?: number;
   maxImageBytes?: number;

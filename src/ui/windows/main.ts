@@ -6,6 +6,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from "ele
 import { readInputAssets } from "../../core/intake.js";
 import { processBatch } from "../../core/pipeline.js";
 import { planBatch } from "../../core/planner.js";
+import { listDeviceProfiles } from "../../core/screenshots/device-profiles.js";
 import { runShotBatch } from "../../core/screenshots/run-shot-batch.js";
 import { createClipboardTempImage } from "./clipboard.js";
 import { RendererPlanBatchPayload, RendererScreenshotBatchPayload } from "./preload.js";
@@ -130,6 +131,7 @@ ipcMain.handle("screenshots:run", async (_event, payload: RendererScreenshotBatc
     copiesPerScreen: payload.copiesPerScreen,
     mobile: payload.mobile,
     deviceProfileName: payload.deviceProfileName,
+    viewport: payload.viewport,
     browserMode: payload.browserMode,
     executablePath: payload.executablePath,
     cdpEndpoint: payload.cdpEndpoint,
@@ -141,6 +143,7 @@ ipcMain.handle("screenshots:run", async (_event, payload: RendererScreenshotBatc
     maxImageBytes: payload.maxImageBytes
   })
 );
+ipcMain.handle("screenshots:device-profiles", async () => listDeviceProfiles());
 ipcMain.handle("shell:open-path", async (_event, targetPath: string) => {
   if (!targetPath || typeof targetPath !== "string") {
     throw new Error("Path is required.");

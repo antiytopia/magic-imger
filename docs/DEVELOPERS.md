@@ -7,8 +7,8 @@
 ```text
 src/
   core/                 # доменная логика (ядро)
-  cli/                  # CLI-обвязка над core / mac \ linux 
-  ui/windows/           # Electron UI (renderer + main + preload) / Гигачед окно для винды) 
+  cli/                  # CLI-обвязка над core
+  ui/windows/           # Electron UI (renderer + main + preload)
   shared/               # общие типы и константы
 docs/
   ARCHITECTURE.md       # принципы и слойность
@@ -16,6 +16,13 @@ docs/
 ```
 
 Главный принцип: **`core` не зависит от UI/CLI**. UI и CLI — тонкие адаптеры.
+
+UI внутри `src/ui/windows/app/` организован так:
+
+- `App.tsx` — переключение режимов
+- `components/` — большие панели (Images/Screenshots)
+- `hooks/` — загрузка данных для UI
+- `lib/` — утилиты (форматирование, нормализация, ссылки на результаты и т.д.)
 
 ## Image pipeline: как устроена обработка изображений
 
@@ -78,7 +85,7 @@ docs/
 3. На уровне выполнения:
    - реализовать применение операции в `src/core/pipeline.ts` (в `processImage`).
 4. Добавить CLI-опцию/команду в `src/cli/index.ts` (тонкая валидация и проброс в `core`).
-5. (Опционально) добавить UI-контролы в `src/ui/windows/app/App.tsx` и прокинуть в bridge.
+5. (Опционально) добавить UI-контролы в `src/ui/windows/app/components/*.tsx` и прокинуть в bridge.
 6. Покрыть тестами (Vitest) в `tests/`.
 
 ### Добавить/изменить параметры скриншотов
@@ -87,7 +94,7 @@ docs/
 2. Бизнес-логика: `src/core/screenshots/make-shot.ts` (или `browser.ts` если про запуск браузера).
 3. Интеграции:
    - CLI: `src/cli/index.ts` команда `shoot`
-   - GUI: `src/ui/windows/app/App.tsx` + IPC (`src/ui/windows/preload.ts` / `src/ui/windows/main.ts`)
+   - GUI: `src/ui/windows/app/components/ScreenshotsPanel.tsx` + IPC (`src/ui/windows/preload.ts` / `src/ui/windows/main.ts`)
 
 ## Тесты и проверки
 
@@ -97,4 +104,3 @@ npm run typecheck
 ```
 
 Если добавляешь новый модуль `core`, старайся держать его независимым от Electron/React и покрывать unit-тестами.
-
