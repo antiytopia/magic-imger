@@ -57,6 +57,7 @@ export interface MagicImgerBridge {
   }>;
   runScreenshotBatch: (payload: RendererScreenshotBatchPayload) => Promise<ScreenshotBatchResult>;
   openPath: (targetPath: string) => Promise<void>;
+  showItemInFolder: (targetPath: string) => Promise<void>;
 }
 
 const api: MagicImgerBridge = {
@@ -67,7 +68,8 @@ const api: MagicImgerBridge = {
   planBatch: (payload) => ipcRenderer.invoke("batch:plan", payload),
   runBatch: (payload) => ipcRenderer.invoke("batch:run", payload),
   runScreenshotBatch: (payload) => ipcRenderer.invoke("screenshots:run", payload),
-  openPath: (targetPath) => ipcRenderer.invoke("shell:open-path", targetPath)
+  openPath: (targetPath) => ipcRenderer.invoke("shell:open-path", targetPath),
+  showItemInFolder: (targetPath) => ipcRenderer.invoke("shell:show-item-in-folder", targetPath)
 };
 
 contextBridge.exposeInMainWorld("magicImger", api);

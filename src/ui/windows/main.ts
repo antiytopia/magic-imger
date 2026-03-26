@@ -151,6 +151,13 @@ ipcMain.handle("shell:open-path", async (_event, targetPath: string) => {
     throw new Error(error);
   }
 });
+ipcMain.handle("shell:show-item-in-folder", async (_event, targetPath: string) => {
+  if (!targetPath || typeof targetPath !== "string") {
+    throw new Error("Path is required.");
+  }
+
+  shell.showItemInFolder(targetPath);
+});
 
 app.whenReady().then(() => {
   createWindow();

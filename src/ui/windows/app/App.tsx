@@ -166,6 +166,19 @@ async function openLocalPath(targetPath: string, setNotice: (message: string | n
   }
 }
 
+async function showItemInFolder(targetPath: string, setNotice: (message: string | null) => void) {
+  if (!targetPath.trim()) {
+    setNotice("Path is empty.");
+    return;
+  }
+
+  try {
+    await getBridge().showItemInFolder(targetPath);
+  } catch (error) {
+    setNotice(`Cannot reveal item: ${getErrorMessage(error)}`);
+  }
+}
+
 function formatMeta(width: number, height: number, format: string, fileSizeBytes: number) {
   return `${width}x${height} | ${format} | ${(fileSizeBytes / 1024).toFixed(1)} KB`;
 }
@@ -311,6 +324,7 @@ export function App() {
     screenshotUrlsList.length === 0 || !screenshotOutDir.trim() || isScreenshotRunning;
   const lastRunSuccessCount = lastRunResults?.filter((result) => result.status === "success").length ?? 0;
   const lastRunFailureResults = lastRunResults?.filter((result) => result.status === "failed") ?? [];
+  const lastRunSuccessResults = lastRunResults?.filter((result) => result.status === "success") ?? [];
 
   function applyItemOverride(assetId: string, nextOverride: JobConfigPatch | undefined) {
     if (nextOverride && hasStoredOverride(nextOverride)) {
@@ -891,6 +905,15 @@ export function App() {
                   <strong>
                     Last run: {lastRunSuccessCount} success, {lastRunFailureResults.length} failed
                   </strong>
+                  {lastRunSuccessResults.length > 0 ? (
+                    <button
+                      type="button"
+                      className="path-link"
+                      onClick={() => showItemInFolder(lastRunSuccessResults[0].outputPath, setQueueNotice)}
+                    >
+                      Reveal first result
+                    </button>
+                  ) : null}
                   {lastRunFailureResults.length > 0 ? (
                     <ul>
                       {lastRunFailureResults.map((result) => (
@@ -1085,9 +1108,22 @@ export function App() {
                     {screenshotResult.results.map((entry) => (
                       <li key={entry.url}>
                         {entry.url}:{" "}
-                        {entry.status === "success"
-                          ? `${entry.artifacts.length} file(s)`
-                          : `failed - ${entry.error ?? "unknown error"}`}
+                        {entry.status === "success" ? (
+                          <>
+                            {entry.artifacts.length} file(s){" "}
+                            <button
+                              type="button"
+                              className="path-link"
+                              onClick={() =>
+                                showItemInFolder(entry.artifacts[0]?.path ?? "", setScreenshotNotice)
+                              }
+                            >
+                              Reveal
+                            </button>
+                          </>
+                        ) : (
+                          `failed - ${entry.error ?? "unknown error"}`
+                        )}
                       </li>
                     ))}
                   </ul>
