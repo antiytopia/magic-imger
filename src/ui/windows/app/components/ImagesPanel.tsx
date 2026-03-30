@@ -208,7 +208,9 @@ export function ImagesPanel(props: { bridge: MagicImgerBridge; className?: strin
         <div className="panel-header">
           <div>
             <h3>Queue</h3>
-            <p className="subtle queue-subtitle">Drag files here or use the actions on the right.</p>
+            <p className="subtle queue-subtitle">
+              1) Add files (drop here / Add Files) · 2) Set Output folder (required) · 3) Pick Output format · 4) Process Queue
+            </p>
           </div>
           <div className="queue-header-actions">
             <button className="primary compact-action" onClick={handlePickFiles}>
@@ -412,7 +414,7 @@ export function ImagesPanel(props: { bridge: MagicImgerBridge; className?: strin
             </label>
 
             <label>
-              <span>Output folder</span>
+              <span>Output folder (required)</span>
               <input
                 value={globalPreset.outputDir ?? ""}
                 placeholder="D:/magic-imger/out"
@@ -423,6 +425,7 @@ export function ImagesPanel(props: { bridge: MagicImgerBridge; className?: strin
                   })
                 }
               />
+              <span className="subtle">Where to save results. The folder is created automatically if it doesn’t exist.</span>
             </label>
 
             <label>
@@ -523,6 +526,8 @@ export function ImagesPanel(props: { bridge: MagicImgerBridge; className?: strin
               Plan Batch
             </button>
           </div>
+          {!sanitizedOutputDir ? <p className="subtle">Processing is disabled until Output folder is set.</p> : null}
+          {items.length === 0 ? <p className="subtle">Add at least one file to enable processing and planning.</p> : null}
         </section>
 
         <section className="panel batch-panel">
@@ -563,7 +568,7 @@ export function ImagesPanel(props: { bridge: MagicImgerBridge; className?: strin
               ) : null}
             </div>
           ) : (
-            <p className="empty">Run planning to see RAM and time estimates.</p>
+            <p className="empty">Set Output folder, then click Plan Batch to see RAM and time estimates.</p>
           )}
 
           {lastRunResults ? (

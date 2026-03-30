@@ -124,7 +124,7 @@ button:disabled {
 
 .screenshots-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
 }
 
@@ -325,7 +325,7 @@ label span {
 
 .queue-inline-settings {
   display: grid;
-  grid-template-columns: 1.2fr 0.9fr 0.9fr 1fr 0.9fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
   min-width: 0;
 }
@@ -364,7 +364,7 @@ label span {
 
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -489,13 +489,21 @@ label span {
   }
 }
 
+@media (max-width: 1040px) {
+  .queue-item-header {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .queue-item-tools {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 860px) {
   .shell {
     padding: 10px 10px;
-  }
-
-  .field-grid {
-    grid-template-columns: 1fr;
   }
 
   .queue-item-header {

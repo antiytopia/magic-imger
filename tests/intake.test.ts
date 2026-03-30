@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -34,6 +34,16 @@ async function createTempImage(
   return filePath;
 }
 
+async function createTempSvg(name: string, svg: string): Promise<string> {
+  const dir = await mkdtemp(path.join(tmpdir(), "magic-imger-"));
+  tempDirs.push(dir);
+
+  const filePath = path.join(dir, name);
+  await writeFile(filePath, svg, "utf8");
+
+  return filePath;
+}
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
@@ -52,10 +62,16 @@ describe("file intake", () => {
       format: "jpg",
       background: "#00ff00"
     });
+    const jfifPath = await createTempImage("gamma.jfif", {
+      width: 800,
+      height: 450,
+      format: "jpg",
+      background: "#0000ff"
+    });
 
-    const assets = await readInputAssets([pngPath, jpgPath]);
+    const assets = await readInputAssets([pngPath, jpgPath, jfifPath]);
 
-    expect(assets).toHaveLength(2);
+    expect(assets).toHaveLength(3);
     expect(assets[0]).toMatchObject({
       inputPath: pngPath,
       fileName: "alpha.png",
@@ -74,8 +90,43 @@ describe("file intake", () => {
       width: 640,
       height: 360
     });
+    expect(assets[2]).toMatchObject({
+      inputPath: jfifPath,
+      fileName: "gamma.jfif",
+      baseName: "gamma",
+      extension: "jpg",
+      format: "jpg",
+      width: 800,
+      height: 450
+    });
     expect(assets[0].fileSizeBytes).toBeGreaterThan(0);
     expect(assets[1].fileSizeBytes).toBeGreaterThan(0);
+    expect(assets[2].fileSizeBytes).toBeGreaterThan(0);
+  });
+
+  it("accepts SVG inputs by rasterizing them into transparent PNG assets", async () => {
+    const svgPath = await createTempSvg(
+      "vector.svg",
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="80" viewBox="0 0 100 80">',
+        '  <circle cx="40" cy="40" r="30" fill="#ff0000" fill-opacity="0.8" />',
+        "</svg>"
+      ].join("\n")
+    );
+
+    const assets = await readInputAssets([svgPath]);
+
+    expect(assets).toHaveLength(1);
+    expect(assets[0]).toMatchObject({
+      fileName: "vector.svg",
+      baseName: "vector",
+      extension: "png",
+      format: "png"
+    });
+    expect(assets[0].width).toBeGreaterThan(0);
+    expect(assets[0].height).toBeGreaterThan(0);
+    expect(assets[0].fileSizeBytes).toBeGreaterThan(0);
+    expect(path.extname(assets[0].inputPath).toLowerCase()).toBe(".png");
   });
 
   it("rejects queues larger than 100 files before processing starts", async () => {

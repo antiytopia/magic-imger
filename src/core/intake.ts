@@ -1,4 +1,5 @@
-import { stat } from "node:fs/promises";
+import { mkdtemp, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import sharp from "sharp";
@@ -7,11 +8,12 @@ import { MAX_BATCH_FILES } from "../shared/config.js";
 import { InputAsset, OutputPathOptions } from "../shared/types.js";
 
 const SUPPORTED_EXTENSIONS = new Set<InputAsset["extension"]>(["jpg", "png", "webp", "avif"]);
+const SVG_RASTERIZE_DENSITY = 72;
 
 function normalizeExtension(filePath: string): InputAsset["extension"] {
   const extension = path.extname(filePath).slice(1).toLowerCase();
 
-  if (extension === "jpeg") {
+  if (extension === "jpeg" || extension === "jfif") {
     return "jpg";
   }
 
@@ -26,6 +28,23 @@ function getBaseName(filePath: string): string {
   return path.basename(filePath, path.extname(filePath));
 }
 
+async function rasterizeSvgToTempPng(inputPath: string): Promise<string> {
+  const baseName = getBaseName(inputPath) || "svg";
+  const dir = await mkdtemp(path.join(tmpdir(), "magic-imger-svg-"));
+  const outputPath = path.join(dir, `${baseName}.png`);
+
+  try {
+    await sharp(inputPath, { density: SVG_RASTERIZE_DENSITY }).png().toFile(outputPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to rasterize SVG: ${inputPath}. Ensure the SVG has viewBox and/or explicit width/height. (${message})`
+    );
+  }
+
+  return outputPath;
+}
+
 export async function readInputAssets(inputPaths: string[]): Promise<InputAsset[]> {
   if (inputPaths.length > MAX_BATCH_FILES) {
     throw new Error(`Batch limit exceeded: maximum ${MAX_BATCH_FILES} files per run.`);
@@ -33,8 +52,11 @@ export async function readInputAssets(inputPaths: string[]): Promise<InputAsset[
 
   return Promise.all(
     inputPaths.map(async (inputPath, index) => {
-      const extension = normalizeExtension(inputPath);
-      const [metadata, fileStats] = await Promise.all([sharp(inputPath).metadata(), stat(inputPath)]);
+      const rawExtension = path.extname(inputPath).slice(1).toLowerCase();
+      const effectiveInputPath =
+        rawExtension === "svg" ? await rasterizeSvgToTempPng(inputPath) : inputPath;
+      const extension = normalizeExtension(effectiveInputPath);
+      const [metadata, fileStats] = await Promise.all([sharp(effectiveInputPath).metadata(), stat(effectiveInputPath)]);
 
       if (!metadata.width || !metadata.height) {
         throw new Error(`Could not read image metadata: ${inputPath}`);
@@ -42,7 +64,7 @@ export async function readInputAssets(inputPaths: string[]): Promise<InputAsset[
 
       return {
         id: `${index}:${inputPath}`,
-        inputPath,
+        inputPath: effectiveInputPath,
         fileName: path.basename(inputPath),
         baseName: getBaseName(inputPath),
         extension,

@@ -38,3 +38,19 @@ chmod +x ./run-unix.sh
 ```
 
 Примеры команд и параметры — в `README.md`.
+
+## GUI: что куда вводить (коротко)
+
+### Images
+
+1) Добавь файлы (drag & drop в панель Queue или **Add Files**)  
+2) Укажи **Output folder** (обязательно)  
+3) Выбери **Output format** (если нужно)  
+4) Нажми **Process Queue** (или **Plan Batch** для оценки RAM/времени)
+
+### Screenshots
+
+1) Вставь URL (по одному в строке)  
+2) Укажи **Output folder** (обязательно)  
+3) Выбери **Browser mode** (по умолчанию подходит `bundled chromium`)  
+4) Нажми **Run**

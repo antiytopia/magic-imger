@@ -70,7 +70,7 @@ ipcMain.handle("dialog:pick-files", async () => {
     filters: [
       {
         name: "Images",
-        extensions: ["jpg", "jpeg", "png", "webp", "avif"]
+        extensions: ["jpg", "jpeg", "jfif", "png", "webp", "avif", "svg"]
       }
     ]
   });

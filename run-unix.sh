@@ -21,43 +21,75 @@ need_cmd() {
 }
 
 ensure_node() {
-  if ! need_cmd node; then
-    info "Node.js not found."
-
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      if need_cmd brew; then
-        info "Attempting to install Node.js via Homebrew..."
-        brew install node
-      else
-        info "Homebrew not found. Opening Node.js download page..."
-        open "https://nodejs.org/en/download" >/dev/null 2>&1 || true
-        fail "Install Node.js 22+ and re-run."
-      fi
-    else
-      # Linux: best-effort using the available package manager, otherwise open download page.
-      if need_cmd apt-get; then
-        info "Attempting to install Node.js via apt-get..."
-        sudo apt-get update
-        sudo apt-get install -y nodejs npm
-      elif need_cmd dnf; then
-        info "Attempting to install Node.js via dnf..."
-        sudo dnf install -y nodejs npm
-      elif need_cmd yum; then
-        info "Attempting to install Node.js via yum..."
-        sudo yum install -y nodejs npm
-      elif need_cmd pacman; then
-        info "Attempting to install Node.js via pacman..."
-        sudo pacman -Sy --noconfirm nodejs npm
-      elif need_cmd zypper; then
-        info "Attempting to install Node.js via zypper..."
-        sudo zypper install -y nodejs npm
-      else
-        info "No supported package manager found. Opening Node.js download page..."
-        (need_cmd xdg-open && xdg-open "https://nodejs.org/en/download") >/dev/null 2>&1 || true
-        fail "Install Node.js 22+ and re-run."
-      fi
+  install_node_darwin() {
+    if need_cmd brew; then
+      info "Attempting to install/upgrade Node.js via Homebrew..."
+      brew install node >/dev/null 2>&1 || brew upgrade node
+      return 0
     fi
-  fi
+
+    info "Homebrew not found."
+    return 1
+  }
+
+  install_node_linux() {
+    # Preferred on Ubuntu/Debian: NodeSource repository to get Node 22.
+    if need_cmd apt-get; then
+      if ! need_cmd curl; then
+        info "curl not found; cannot use NodeSource installer."
+        return 1
+      fi
+
+      info "Attempting to install/upgrade Node.js 22 via NodeSource (apt)..."
+      sudo apt-get update
+      curl -fsSL "https://deb.nodesource.com/setup_22.x" | sudo -E bash -
+      sudo apt-get install -y nodejs
+      return 0
+    fi
+
+    # Other distros: best-effort with native package manager (may be older).
+    if need_cmd dnf; then
+      info "Attempting to install/upgrade Node.js via dnf..."
+      sudo dnf install -y nodejs npm
+      return 0
+    fi
+    if need_cmd yum; then
+      info "Attempting to install/upgrade Node.js via yum..."
+      sudo yum install -y nodejs npm
+      return 0
+    fi
+    if need_cmd pacman; then
+      info "Attempting to install/upgrade Node.js via pacman..."
+      sudo pacman -Sy --noconfirm nodejs npm
+      return 0
+    fi
+    if need_cmd zypper; then
+      info "Attempting to install/upgrade Node.js via zypper..."
+      sudo zypper install -y nodejs npm
+      return 0
+    fi
+
+    return 1
+  }
+
+  ensure_node_version_or_install() {
+    if need_cmd node; then
+      return 0
+    fi
+
+    info "Node.js not found."
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      install_node_darwin || return 1
+    else
+      install_node_linux || return 1
+    fi
+  }
+
+  ensure_node_version_or_install || {
+    info "Cannot auto-install Node.js."
+    info "Install Node.js 22+ from https://nodejs.org/en/download and re-run."
+    fail "Node.js is required."
+  }
 
   local version
   version="$(node --version | sed 's/^v//')"
@@ -65,15 +97,32 @@ ensure_node() {
   if [[ -z "${major}" ]] || ! [[ "${major}" =~ ^[0-9]+$ ]]; then
     fail "Unrecognized Node.js version: ${version}"
   fi
+
   if (( major < 22 )); then
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      info "Node.js version is too old (${version}). Opening download page..."
-      open "https://nodejs.org/en/download" >/dev/null 2>&1 || true
+    info "Node.js version is too old (${version}). Attempting to upgrade to 22..."
+
+    # If nvm is available, prefer it (no sudo required in many setups).
+    if need_cmd nvm; then
+      nvm install 22
+      nvm use 22
     else
-      info "Node.js version is too old (${version}). Opening download page..."
-      (need_cmd xdg-open && xdg-open "https://nodejs.org/en/download") >/dev/null 2>&1 || true
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        install_node_darwin || true
+      else
+        install_node_linux || true
+      fi
     fi
-    fail "Node.js 22+ required. Current: ${version}"
+
+    version="$(node --version | sed 's/^v//')"
+    major="${version%%.*}"
+    if [[ -z "${major}" ]] || ! [[ "${major}" =~ ^[0-9]+$ ]]; then
+      fail "Unrecognized Node.js version: ${version}"
+    fi
+    if (( major < 22 )); then
+      info "Auto-upgrade did not provide Node.js 22+."
+      info "Install Node.js 22+ from https://nodejs.org/en/download and re-run."
+      fail "Node.js 22+ required. Current: ${version}"
+    fi
   fi
 
   if ! need_cmd npm; then

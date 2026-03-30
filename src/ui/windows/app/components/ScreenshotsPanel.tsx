@@ -106,7 +106,7 @@ export function ScreenshotsPanel(props: {
         <div className="panel-header">
           <div>
             <h3>Screenshot Batch</h3>
-            <p className="subtle queue-subtitle">Paste one URL per line, then choose browser mode and run.</p>
+            <p className="subtle queue-subtitle">1) Paste one URL per line · 2) Set Output folder (required) · 3) Choose browser mode · 4) Run</p>
           </div>
           <div className="queue-header-actions">
             <span>{screenshotUrlsList.length} urls</span>
@@ -127,8 +127,9 @@ export function ScreenshotsPanel(props: {
           </label>
 
           <label>
-            <span>Output folder</span>
+            <span>Output folder (required)</span>
             <input value={screenshotOutDir} onChange={(event) => setScreenshotOutDir(event.target.value)} />
+            <span className="subtle">Where to save screenshots. The folder is created automatically if it doesn’t exist.</span>
           </label>
 
           <label>
