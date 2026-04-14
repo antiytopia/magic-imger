@@ -8,6 +8,7 @@ temp/
 .gui-dist/
 screenshots/
 .venv/
+.runtime/
 .pytest_cache/
 .DS_Store
 Thumbs.db
