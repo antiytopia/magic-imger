@@ -1,7 +1,6 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from "electron";
+import electron from "electron";
 
 import { readInputAssets } from "../../core/intake.js";
 import { processBatch } from "../../core/pipeline.js";
@@ -11,8 +10,20 @@ import { runShotBatch } from "../../core/screenshots/run-shot-batch.js";
 import { createClipboardTempImage } from "./clipboard.js";
 import { RendererPlanBatchPayload, RendererScreenshotBatchPayload } from "./preload.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } = electron;
+
+const runtimeDir = (() => {
+  const scriptPath = process.argv[1];
+  if (scriptPath && typeof scriptPath === "string") {
+    return path.dirname(scriptPath);
+  }
+
+  if (typeof __dirname !== "undefined") {
+    return __dirname;
+  }
+
+  return process.cwd();
+})();
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -23,16 +34,16 @@ function createWindow() {
     resizable: true,
     maximizable: true,
     fullscreenable: true,
-    backgroundColor: "#f3efe7",
+      backgroundColor: "#f3efe7",
     webPreferences: {
-      preload: path.join(__dirname, "preload.cjs"),
+      preload: path.join(runtimeDir, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       devTools: true
     }
   });
 
-  win.loadFile(path.join(__dirname, "index.html"));
+  win.loadFile(path.join(runtimeDir, "index.html"));
 
   const menu = Menu.buildFromTemplate([
     { label: "File", submenu: [{ role: "quit" }] },

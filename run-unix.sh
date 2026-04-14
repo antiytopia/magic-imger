@@ -217,6 +217,8 @@ ensure_deps
 
 if [[ "$MODE" == "gui" ]]; then
   info "Starting GUI..."
+  # If set, Electron will run in "node" mode and the GUI won't start correctly.
+  unset ELECTRON_RUN_AS_NODE || true
   npm run gui
 else
   info "Starting CLI..."

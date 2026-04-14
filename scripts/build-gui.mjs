@@ -15,12 +15,21 @@ console.log(`[build-gui] node=${process.version} (js->ts resolver enabled)`);
 const jsExtensionToTsPlugin = {
   name: "js-extension-to-ts",
   setup(esbuild) {
-    esbuild.onResolve({ filter: /\.js$/ }, (args) => {
+    const debug = process.env.MAGIC_IMGER_BUILD_DEBUG === "1";
+
+    esbuild.onResolve({ filter: /.*/ }, (args) => {
       // Only rewrite relative imports (project files). Keep packages/URLs intact.
       if (!args.path.startsWith(".")) return null;
 
-      const resolvedJs = path.resolve(args.resolveDir, args.path);
-      if (existsSync(resolvedJs)) return null;
+      // We only care about explicit ".js" relative imports (common pattern for TS->ESM builds).
+      // Ignore non-js requests (or ones that already exist as-is).
+      const withoutQuery = args.path.split("?")[0];
+      if (!withoutQuery.endsWith(".js")) return null;
+
+      const resolvedJs = path.resolve(args.resolveDir, withoutQuery);
+      if (existsSync(resolvedJs)) {
+        return null;
+      }
 
       const candidates = [
         resolvedJs.replace(/\.js$/, ".ts"),
@@ -31,10 +40,16 @@ const jsExtensionToTsPlugin = {
 
       for (const candidate of candidates) {
         if (existsSync(candidate)) {
-          return { path: candidate, namespace: "file" };
+          if (debug) {
+            console.log(`[build-gui] resolve ${args.path} -> ${candidate}`);
+          }
+          return { path: candidate };
         }
       }
 
+      if (debug) {
+        console.log(`[build-gui] unresolved ${args.path} (tried: ${candidates.join(", ")})`);
+      }
       return null;
     });
   }
@@ -44,9 +59,9 @@ await build({
   entryPoints: [path.join(rootDir, "src/ui/windows/main.ts")],
   bundle: true,
   platform: "node",
-  format: "esm",
+  format: "cjs",
   target: "node22",
-  outfile: path.join(outDir, "main.js"),
+  outfile: path.join(outDir, "main.cjs"),
   plugins: [jsExtensionToTsPlugin],
   external: ["electron", "sharp", "playwright", "playwright-core", "chromium-bidi"]
 });

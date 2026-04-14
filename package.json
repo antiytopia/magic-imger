@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "build:gui": "node scripts/build-gui.mjs",
     "cli": "tsx src/cli/index.ts",
-    "gui": "npm run build:gui && electron .gui-dist/main.js",
+    "gui": "npm run build:gui && electron .gui-dist/main.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"

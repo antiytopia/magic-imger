@@ -363,6 +363,54 @@ Or:
 "@
 }
 
+function Invoke-BuildGui([string]$Root, [string]$NodeExe) {
+  $buildScript = Join-Path $Root "scripts\\build-gui.mjs"
+  if (-not (Test-Path $buildScript)) {
+    Write-Fail "Build script not found: $buildScript"
+  }
+
+  Write-Info "Building GUI..."
+  & $NodeExe $buildScript
+  if ($LASTEXITCODE -ne 0) {
+    Write-Fail "GUI build failed (exit code: $LASTEXITCODE)."
+  }
+}
+
+function Invoke-Electron([string]$Root, [string]$NpmCmd) {
+  $entry = Join-Path $Root ".gui-dist\\main.cjs"
+  if (-not (Test-Path $entry)) {
+    Write-Fail "GUI entry not found: $entry"
+  }
+
+  Write-Info "Starting Electron..."
+  if ($env:ELECTRON_RUN_AS_NODE) {
+    Write-Info "Note: ELECTRON_RUN_AS_NODE was set; clearing it for GUI launch."
+    Remove-Item Env:\ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+  }
+  Push-Location $Root
+  try {
+    & $NpmCmd "exec" "--" "electron" $entry
+    exit $LASTEXITCODE
+  } finally {
+    Pop-Location
+  }
+}
+
+function Invoke-TsxCli([string]$Root, [string]$NpmCmd, [string[]]$Args) {
+  Write-Info "Starting CLI..."
+  Push-Location $Root
+  try {
+    if ($Args -and $Args.Count -gt 0) {
+      & $NpmCmd "exec" "--" "tsx" "src\\cli\\index.ts" @Args
+    } else {
+      & $NpmCmd "exec" "--" "tsx" "src\\cli\\index.ts"
+    }
+    exit $LASTEXITCODE
+  } finally {
+    Pop-Location
+  }
+}
+
 $root = Get-RepoRoot
 Set-Location $root
 
@@ -392,21 +440,19 @@ Ensure-Dependencies -Root $root -NpmCmd $nodePaths.NpmCmd -NodeVersion $nodeVers
 
 if ($Mode -eq "gui") {
   Write-Info "Starting GUI..."
-  & $nodePaths.NpmCmd run gui
-  exit $LASTEXITCODE
+  Invoke-BuildGui -Root $root -NodeExe $nodePaths.NodeExe
+  Invoke-Electron -Root $root -NpmCmd $nodePaths.NpmCmd
 }
 
 if ($Mode -eq "cli") {
-  Write-Info "Starting CLI..."
-  & $nodePaths.NpmCmd run cli -- @CliArgs
-  exit $LASTEXITCODE
+  Invoke-TsxCli -Root $root -NpmCmd $nodePaths.NpmCmd -Args $CliArgs
 }
 
 if ($Mode -eq "repair") {
   Write-Info "Repair completed."
   Write-Info "Starting GUI..."
-  & $nodePaths.NpmCmd run gui
-  exit $LASTEXITCODE
+  Invoke-BuildGui -Root $root -NodeExe $nodePaths.NodeExe
+  Invoke-Electron -Root $root -NpmCmd $nodePaths.NpmCmd
 }
 
 Write-Fail "Unknown mode: $Mode"

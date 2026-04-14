@@ -1,4 +1,6 @@
-import { contextBridge, ipcRenderer, webUtils } from "electron";
+import electron from "electron";
+
+const { contextBridge, ipcRenderer, webUtils } = electron;
 
 import {
   BatchJobResult,
