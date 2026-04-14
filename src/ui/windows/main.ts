@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import electron from "electron";
+import * as electron from "electron";
 
 import { readInputAssets } from "../../core/intake.js";
 import { processBatch } from "../../core/pipeline.js";
@@ -11,6 +11,28 @@ import { createClipboardTempImage } from "./clipboard.js";
 import { RendererPlanBatchPayload, RendererScreenshotBatchPayload } from "./preload.js";
 
 const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } = electron;
+
+// Make Electron more resilient on locked-down Windows setups:
+// - Store userData/cache in LOCALAPPDATA (often writable even when repo folder is restricted)
+// - Avoid shader disk cache (can fail with "Access is denied" in some environments)
+try {
+  if (process.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA?.trim();
+    if (localAppData) {
+      const baseDir = path.join(localAppData, "MagicImger");
+      app.setPath("userData", path.join(baseDir, "userData"));
+      app.setPath("cache", path.join(baseDir, "cache"));
+    }
+
+    app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+
+    if (process.env.MAGIC_IMGER_DISABLE_GPU === "1") {
+      app.commandLine.appendSwitch("disable-gpu");
+    }
+  }
+} catch {
+  // Best-effort; ignore if Electron isn't ready for path overrides.
+}
 
 const runtimeDir = (() => {
   const scriptPath = process.argv[1];
@@ -44,6 +66,27 @@ function createWindow() {
   });
 
   win.loadFile(path.join(runtimeDir, "index.html"));
+
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    dialog.showMessageBox(win, {
+      type: "error",
+      title: "Magic Imger failed to load UI",
+      message: "Magic Imger could not load the UI.",
+      detail: `URL: ${validatedURL}\nError: ${errorDescription} (${errorCode})\n\nTry: close the app, run repair-win.bat, then start again.`
+    });
+    if (process.env.MAGIC_IMGER_DEVTOOLS === "1") {
+      win.webContents.openDevTools({ mode: "detach" });
+    }
+  });
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    dialog.showMessageBox(win, {
+      type: "error",
+      title: "Magic Imger renderer crashed",
+      message: "The UI process crashed.",
+      detail: `Reason: ${details.reason}\nExit code: ${details.exitCode}\n\nTry: close the app, run repair-win.bat, then start again.`
+    });
+  });
 
   const menu = Menu.buildFromTemplate([
     { label: "File", submenu: [{ role: "quit" }] },
