@@ -1,4 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { build } from "esbuild";
@@ -9,6 +10,34 @@ const outDir = path.join(rootDir, ".gui-dist");
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
+const jsExtensionToTsPlugin = {
+  name: "js-extension-to-ts",
+  setup(esbuild) {
+    esbuild.onResolve({ filter: /\.js$/ }, (args) => {
+      // Only rewrite relative imports (project files). Keep packages/URLs intact.
+      if (!args.path.startsWith(".")) return null;
+
+      const resolvedJs = path.join(args.resolveDir, args.path);
+      if (existsSync(resolvedJs)) return null;
+
+      const candidates = [
+        resolvedJs.replace(/\.js$/, ".ts"),
+        resolvedJs.replace(/\.js$/, ".tsx"),
+        resolvedJs.replace(/\.js$/, ".mts"),
+        resolvedJs.replace(/\.js$/, ".cts")
+      ];
+
+      for (const candidate of candidates) {
+        if (existsSync(candidate)) {
+          return { path: candidate };
+        }
+      }
+
+      return null;
+    });
+  }
+};
+
 await build({
   entryPoints: [path.join(rootDir, "src/ui/windows/main.ts")],
   bundle: true,
@@ -16,6 +45,7 @@ await build({
   format: "esm",
   target: "node22",
   outfile: path.join(outDir, "main.js"),
+  plugins: [jsExtensionToTsPlugin],
   external: ["electron", "sharp", "playwright", "playwright-core", "chromium-bidi"]
 });
 
@@ -26,6 +56,7 @@ await build({
   format: "cjs",
   target: "node22",
   outfile: path.join(outDir, "preload.cjs"),
+  plugins: [jsExtensionToTsPlugin],
   external: ["electron"]
 });
 
@@ -36,6 +67,7 @@ await build({
   format: "esm",
   target: "chrome120",
   outfile: path.join(outDir, "renderer.js"),
+  plugins: [jsExtensionToTsPlugin],
   loader: {
     ".css": "css"
   }
