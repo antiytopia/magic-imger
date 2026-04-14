@@ -10,6 +10,8 @@ const outDir = path.join(rootDir, ".gui-dist");
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
+console.log(`[build-gui] node=${process.version} (js->ts resolver enabled)`);
+
 const jsExtensionToTsPlugin = {
   name: "js-extension-to-ts",
   setup(esbuild) {
@@ -17,7 +19,7 @@ const jsExtensionToTsPlugin = {
       // Only rewrite relative imports (project files). Keep packages/URLs intact.
       if (!args.path.startsWith(".")) return null;
 
-      const resolvedJs = path.join(args.resolveDir, args.path);
+      const resolvedJs = path.resolve(args.resolveDir, args.path);
       if (existsSync(resolvedJs)) return null;
 
       const candidates = [
@@ -29,7 +31,7 @@ const jsExtensionToTsPlugin = {
 
       for (const candidate of candidates) {
         if (existsSync(candidate)) {
-          return { path: candidate };
+          return { path: candidate, namespace: "file" };
         }
       }
 

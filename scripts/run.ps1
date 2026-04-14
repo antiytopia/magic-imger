@@ -376,6 +376,8 @@ $nodePaths = Ensure-LocalNode -Root $root -RequiredMajor $requiredMajor
 
 $archTag = Get-OsNodeArchTag
 $nodeVersion = (& $nodePaths.NodeExe --version).Trim()
+Write-Info "Repo: $root"
+Write-Info "Runtime: $nodeVersion ($archTag)"
 
 $forceDeps = $false
 if ($Mode -eq "repair") {
